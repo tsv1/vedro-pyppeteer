@@ -1,16 +1,17 @@
 from pathlib import Path
 from shutil import rmtree
 from time import time
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import vedro
 from pyppeteer.browser import Browser
 from pyppeteer.launcher import Launcher
 from pyppeteer.page import Page
-from vedro.core import Dispatcher, Plugin, ScenarioResult
+from vedro.core import Dispatcher, Plugin
 from vedro.events import (
     ArgParsedEvent,
     ArgParseEvent,
+    ScenarioFailedEvent,
     ScenarioRunEvent,
     StartupEvent,
     StepFailedEvent,
@@ -57,29 +58,36 @@ class PyppeteerPlugin(Plugin):
         self._browser_ctx = browser_ctx
         self._enabled = False
         self._dir = Path("./screenshots")
-        self._scenario_result: Union[ScenarioResult, None] = None
+        self._only_failed = False
+        self._buffer: List[Tuple[bytes, Path]] = []
 
     def subscribe(self, dispatcher: Dispatcher) -> None:
         dispatcher.listen(ArgParseEvent, self.on_arg_parse) \
                   .listen(ArgParsedEvent, self.on_arg_parsed) \
                   .listen(StartupEvent, self.on_startup) \
                   .listen(ScenarioRunEvent, self.on_scenario_run) \
+                  .listen(ScenarioFailedEvent, self.on_scenario_failed) \
                   .listen(StepPassedEvent, self.on_step_end) \
                   .listen(StepFailedEvent, self.on_step_end)
 
     def on_arg_parse(self, event: ArgParseEvent) -> None:
-        event.arg_parser.add_argument("--pyppeteer-sreenshots",
+        event.arg_parser.add_argument("--pyppeteer-screenshots",
                                       action="store_true",
                                       default=self._enabled,
                                       help="Enable pyppeteer screenshots")
         help_message = f"Set directory for pyppeteer screenshots (default: {self._dir})"
-        event.arg_parser.add_argument("--pyppeteer-sreenshots-dir",
+        event.arg_parser.add_argument("--pyppeteer-screenshots-dir",
                                       default=self._dir,
                                       help=help_message)
+        event.arg_parser.add_argument("--pyppeteer-screenshots-only-failed",
+                                      action="store_true",
+                                      default=self._only_failed,
+                                      help="Save screenshots for failed scenarios only")
 
     def on_arg_parsed(self, event: ArgParsedEvent) -> None:
-        self._enabled = event.args.pyppeteer_sreenshots
-        self._dir = Path(event.args.pyppeteer_sreenshots_dir).resolve()
+        self._enabled = event.args.pyppeteer_screenshots
+        self._dir = Path(event.args.pyppeteer_screenshots_dir).resolve()
+        self._only_failed = event.args.pyppeteer_screenshots_only_failed
         self._reruns = event.args.reruns
 
     def on_startup(self, event: StartupEvent) -> None:
@@ -94,6 +102,12 @@ class PyppeteerPlugin(Plugin):
         self._path.scenario_subject = event.scenario_result.scenario.subject
         if self._reruns > 0:
             self._path.rerun = event.scenario_result.rerun
+        self._buffer = []
+
+    def _save_screenshot(self, screenshot: bytes, path: Path) -> None:
+        if not path.parent.exists():
+            path.parent.mkdir(parents=True)
+        path.write_bytes(screenshot)
 
     async def on_step_end(self, event: Union[StepPassedEvent, StepFailedEvent]) -> None:
         if not self._enabled:
@@ -103,14 +117,21 @@ class PyppeteerPlugin(Plugin):
         if browser is None:
             return
 
-        screenshot_path = self._path.resolve()
-        if not screenshot_path.parent.exists():
-            screenshot_path.parent.mkdir(parents=True)
-
         pages = await browser.pages()
         for index, page in enumerate(pages):
             self._path.timestamp = int(time() * 1000)
             self._path.step_name = event.step_result.step_name
             if len(pages) > 1:
                 self._path.tab_index = index
-            await page.screenshot({"path": self._path.resolve()})
+
+            path = self._path.resolve()
+            screenshot = await page.screenshot()
+            if self._only_failed:
+                self._buffer.append((screenshot, path))
+            else:
+                self._save_screenshot(screenshot, path)
+
+    async def on_scenario_failed(self, event: ScenarioFailedEvent) -> None:
+        while len(self._buffer) > 0:
+            screenshot, path = self._buffer.pop(0)
+            self._save_screenshot(screenshot, path)
