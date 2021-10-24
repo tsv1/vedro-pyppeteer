@@ -12,3 +12,50 @@
 ```shell
 $ pip3 install vedro-pyppeteer
 ```
+
+```python
+# ./bootstrap.py
+import vedro
+from vedro_pyppeteer import PyppeteerPlugin
+
+vedro.run(plugins=[PyppeteerPlugin()])
+```
+
+
+## Usage
+
+```python
+# ./scenarios/reset_password.py
+import vedro
+from vedro_pyppeteer import opened_browser_page
+
+class Scenario(vedro.Scenario):
+    subject = "reset password"
+
+    async def given_opened_app(self):
+        self.page = await opened_browser_page()
+        await self.page.goto("http://localhost/reset")
+
+    async def given_filled_email(self):
+        form_email = await self.page.querySelector("#form-email")
+        await form_email.type("user@email")
+
+    async def when_user_submits_form(self):
+        await self.page.click("#form-submit")
+
+    async def then_it_should_redirect_to_root_page(self):
+        pathname = await self.page.evaluate("window.location.pathname")
+        assert pathname == "/"
+```
+
+```shell
+$ python3 bootstrap.py --pyppeteer-screenshots
+```
+
+## Documentation
+
+`--pyppeteer-screenshots` — Enable screenshots
+
+`--pyppeteer-screenshots-dir` — Set directory for screenshots (default: ./screenshots)
+
+`--pyppeteer-screenshots-only-failed` — Save screenshots only for failed scenarios

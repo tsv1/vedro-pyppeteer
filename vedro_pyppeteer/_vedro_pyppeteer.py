@@ -82,7 +82,7 @@ class PyppeteerPlugin(Plugin):
         event.arg_parser.add_argument("--pyppeteer-screenshots-only-failed",
                                       action="store_true",
                                       default=self._only_failed,
-                                      help="Save screenshots for failed scenarios only")
+                                      help="Save screenshots only for failed scenarios")
 
     def on_arg_parsed(self, event: ArgParsedEvent) -> None:
         self._enabled = event.args.pyppeteer_screenshots
