@@ -19,4 +19,4 @@ class BrowserContext:
         self._browser = None
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self._browser!r})"
+        return f"{self.__class__.__name__}<{self._browser!r}>"
