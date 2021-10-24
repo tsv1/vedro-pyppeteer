@@ -43,7 +43,7 @@ async def opened_browser(options: Optional[Dict[str, Any]] = None) -> Browser:
 
 
 @vedro.context
-async def opened_browser_page(browser: Optional[Browser]) -> Page:
+async def opened_browser_page(browser: Optional[Browser] = None) -> Page:
     if browser is None:
         browser = await opened_browser()
 
