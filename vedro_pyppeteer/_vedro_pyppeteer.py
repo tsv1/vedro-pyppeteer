@@ -1,3 +1,4 @@
+from enum import Enum
 from pathlib import Path
 from shutil import rmtree
 from time import time
@@ -52,13 +53,23 @@ async def opened_browser_page(browser: Optional[Browser] = None) -> Page:
     return page
 
 
+class Mode(Enum):
+    EVERY_STEP = "every_step"
+    ONLY_FAILED = "only_failed"
+    ON_FAIL = "on_fail"
+    DISABLED = "disabled"
+
+    def __str__(self) -> str:
+        return self.value
+
+
 class PyppeteerPlugin(Plugin):
     def __init__(self, browser_ctx: BrowserContext = _browser_ctx) -> None:
         super().__init__()
         self._browser_ctx = browser_ctx
-        self._enabled = False
-        self._dir = Path("./screenshots")
-        self._only_failed = False
+        self._mode = Mode.DISABLED
+        self._dir = Path()
+        self._reruns = 0
         self._buffer: List[Tuple[bytes, Path]] = []
 
     def subscribe(self, dispatcher: Dispatcher) -> None:
@@ -72,30 +83,25 @@ class PyppeteerPlugin(Plugin):
 
     def on_arg_parse(self, event: ArgParseEvent) -> None:
         event.arg_parser.add_argument("--pyppeteer-screenshots",
-                                      action="store_true",
-                                      default=self._enabled,
-                                      help="Enable pyppeteer screenshots")
-        help_message = f"Set directory for pyppeteer screenshots (default: {self._dir})"
+                                      type=Mode, choices=list(Mode),
+                                      help="Enable screenshots")
+        default_dir = "./screenshots"
+        help_message = f"Set directory for screenshots (default: '{default_dir}')"
         event.arg_parser.add_argument("--pyppeteer-screenshots-dir",
-                                      default=self._dir,
+                                      default=default_dir,
                                       help=help_message)
-        event.arg_parser.add_argument("--pyppeteer-screenshots-only-failed",
-                                      action="store_true",
-                                      default=self._only_failed,
-                                      help="Save screenshots only for failed scenarios")
 
     def on_arg_parsed(self, event: ArgParsedEvent) -> None:
-        self._enabled = event.args.pyppeteer_screenshots
+        self._mode = event.args.pyppeteer_screenshots
         self._dir = Path(event.args.pyppeteer_screenshots_dir).resolve()
-        self._only_failed = event.args.pyppeteer_screenshots_only_failed
         self._reruns = event.args.reruns
 
     def on_startup(self, event: StartupEvent) -> None:
-        if self._enabled and self._dir.exists():
+        if self._mode != Mode.DISABLED and self._dir.exists():
             rmtree(self._dir)
 
     def on_scenario_run(self, event: ScenarioRunEvent) -> None:
-        if not self._enabled:
+        if self._mode == Mode.DISABLED:
             return
         self._path = ScreenshotPath(self._dir)
         self._path.scenario_path = event.scenario_result.scenario.path
@@ -110,7 +116,7 @@ class PyppeteerPlugin(Plugin):
         path.write_bytes(screenshot)
 
     async def on_step_end(self, event: Union[StepPassedEvent, StepFailedEvent]) -> None:
-        if not self._enabled:
+        if self._mode == Mode.DISABLED:
             return
 
         browser = self._browser_ctx.get()
@@ -126,9 +132,11 @@ class PyppeteerPlugin(Plugin):
 
             path = self._path.resolve()
             screenshot = await page.screenshot()
-            if self._only_failed:
+            if self._mode == Mode.EVERY_STEP:
+                self._save_screenshot(screenshot, path)
+            elif self._mode == Mode.ON_FAIL:
                 self._buffer.append((screenshot, path))
-            else:
+            elif (self._mode == Mode.ONLY_FAILED) and event.step_result.is_failed():
                 self._save_screenshot(screenshot, path)
 
     async def on_scenario_failed(self, event: ScenarioFailedEvent) -> None:

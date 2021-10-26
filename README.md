@@ -49,13 +49,17 @@ class Scenario(vedro.Scenario):
 ```
 
 ```shell
-$ python3 bootstrap.py --pyppeteer-screenshots
+$ python3 bootstrap.py --pyppeteer-screenshots=on_fail
 ```
 
 ## Documentation
 
-`--pyppeteer-screenshots` — Enable screenshots
+`--pyppeteer-screenshots=<mode>`
+
+| Mode        | Description                                        |
+| ----------- | -------------------------------------------------- |
+| every_step  | Save screenshots for every step                    |
+| only_failed | Save screenshots only for failed steps             |
+| on_fail     | Save screenshots for all steps when scenario fails |
 
 `--pyppeteer-screenshots-dir` — Set directory for screenshots (default: ./screenshots)
-
-`--pyppeteer-screenshots-only-failed` — Save screenshots only for failed scenarios
