@@ -82,14 +82,15 @@ class PyppeteerPlugin(Plugin):
                   .listen(StepFailedEvent, self.on_step_end)
 
     def on_arg_parse(self, event: ArgParseEvent) -> None:
-        event.arg_parser.add_argument("--pyppeteer-screenshots",
-                                      type=Mode, choices=list(Mode),
-                                      help="Enable screenshots")
+        group = event.arg_parser.add_argument_group("Pyppeteer")
+
+        group.add_argument("--pyppeteer-screenshots",
+                           type=Mode, choices=list(Mode), help="Enable screenshots")
+
         default_dir = "./screenshots"
         help_message = f"Set directory for screenshots (default: '{default_dir}')"
-        event.arg_parser.add_argument("--pyppeteer-screenshots-dir",
-                                      default=default_dir,
-                                      help=help_message)
+        group.add_argument("--pyppeteer-screenshots-dir",
+                           default=default_dir, help=help_message)
 
     def on_arg_parsed(self, event: ArgParsedEvent) -> None:
         self._mode = event.args.pyppeteer_screenshots
