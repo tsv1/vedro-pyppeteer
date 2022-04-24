@@ -9,18 +9,26 @@
 
 ## Installation
 
+### 1. Install package
+
 ```shell
 $ pip3 install vedro-pyppeteer
 ```
 
+### 2. Enable plugin
+
 ```python
-# ./bootstrap.py
+# ./vedro.cfg.py
 import vedro
-from vedro_pyppeteer import PyppeteerPlugin
+import vedro_pyppeteer as p
 
-vedro.run(plugins=[PyppeteerPlugin()])
+class Config(vedro.Config):
+
+    class Plugins(vedro.Config.Plugins):
+
+        class Pyppeteer(p.Pyppeteer):
+            enabled = True
 ```
-
 
 ## Usage
 
@@ -49,7 +57,7 @@ class Scenario(vedro.Scenario):
 ```
 
 ```shell
-$ python3 bootstrap.py --pyppeteer-screenshots=on_fail
+$ vedro run --pyppeteer-screenshots=on_fail
 ```
 
 ## Documentation

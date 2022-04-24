@@ -2,13 +2,13 @@ from enum import Enum
 from pathlib import Path
 from shutil import rmtree
 from time import time
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import vedro
 from pyppeteer.browser import Browser
 from pyppeteer.launcher import Launcher
 from pyppeteer.page import Page
-from vedro.core import Dispatcher, Plugin
+from vedro.core import Dispatcher, Plugin, PluginConfig
 from vedro.events import (
     ArgParsedEvent,
     ArgParseEvent,
@@ -22,7 +22,7 @@ from vedro.events import (
 from ._browser_context import BrowserContext
 from ._screenshot_path import ScreenshotPath
 
-__all__ = ("PyppeteerPlugin", "opened_browser", "opened_browser_page",)
+__all__ = ("Pyppeteer", "PyppeteerPlugin", "opened_browser", "opened_browser_page",)
 
 _browser_ctx = BrowserContext()
 
@@ -64,8 +64,9 @@ class Mode(Enum):
 
 
 class PyppeteerPlugin(Plugin):
-    def __init__(self, browser_ctx: BrowserContext = _browser_ctx) -> None:
-        super().__init__()
+    def __init__(self, config: Type["Pyppeteer"], *,
+                 browser_ctx: BrowserContext = _browser_ctx) -> None:
+        super().__init__(config)
         self._browser_ctx = browser_ctx
         self._mode = Mode.DISABLED
         self._dir = Path()
@@ -144,3 +145,7 @@ class PyppeteerPlugin(Plugin):
         while len(self._buffer) > 0:
             screenshot, path = self._buffer.pop(0)
             self._save_screenshot(screenshot, path)
+
+
+class Pyppeteer(PluginConfig):
+    plugin = PyppeteerPlugin
