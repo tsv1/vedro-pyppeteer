@@ -1,6 +1,6 @@
 from baby_steps import then, when
 
-from vedro_pyppeteer import PyppeteerPlugin, Pyppeteer
+from vedro_pyppeteer import Pyppeteer, PyppeteerPlugin
 
 
 def test_plugin():

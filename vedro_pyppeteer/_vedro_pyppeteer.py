@@ -2,13 +2,12 @@ from enum import Enum
 from pathlib import Path
 from shutil import rmtree
 from time import time
-from typing import Any, Dict, List, Optional, Tuple, Union, Type
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
+import vedro
 from pyppeteer.browser import Browser
 from pyppeteer.launcher import Launcher
 from pyppeteer.page import Page
-
-import vedro
 from vedro.core import Dispatcher, Plugin, PluginConfig
 from vedro.events import (
     ArgParsedEvent,
@@ -19,6 +18,7 @@ from vedro.events import (
     StepFailedEvent,
     StepPassedEvent,
 )
+
 from ._browser_context import BrowserContext
 from ._screenshot_path import ScreenshotPath
 
