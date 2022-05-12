@@ -97,6 +97,8 @@ $ vedro run --playwright-screenshots=on_fail
 
 ## Documentation
 
+### Plugin
+
 `--playwright-screenshots=<mode>`
 
 | Mode        | Description                                        |
@@ -106,3 +108,8 @@ $ vedro run --playwright-screenshots=on_fail
 | on_fail     | Save screenshots for all steps when scenario fails |
 
 `--playwright-screenshots-dir` — Set directory for screenshots (default: ./screenshots)
+
+
+### Playwright
+
+Documentation for Playwright available [here](https://playwright.dev/python/docs/intro)
