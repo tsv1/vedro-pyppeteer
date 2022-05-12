@@ -1,18 +1,18 @@
-# Vedro Pyppeteer Plugin
+# Vedro Playwright Plugin
 
-[![Codecov](https://img.shields.io/codecov/c/github/nikitanovosibirsk/vedro-pyppeteer/master.svg?style=flat-square)](https://codecov.io/gh/nikitanovosibirsk/vedro-pyppeteer)
-[![PyPI](https://img.shields.io/pypi/v/vedro-pyppeteer.svg?style=flat-square)](https://pypi.python.org/pypi/vedro-pyppeteer/)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/vedro-pyppeteer?style=flat-square)](https://pypi.python.org/pypi/vedro-pyppeteer/)
-[![Python Version](https://img.shields.io/pypi/pyversions/vedro-pyppeteer.svg?style=flat-square)](https://pypi.python.org/pypi/vedro-pyppeteer/)
+[![Codecov](https://img.shields.io/codecov/c/github/nikitanovosibirsk/vedro-playwright/master.svg?style=flat-square)](https://codecov.io/gh/nikitanovosibirsk/vedro-playwright)
+[![PyPI](https://img.shields.io/pypi/v/vedro-playwright.svg?style=flat-square)](https://pypi.python.org/pypi/vedro-playwright/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/vedro-playwright?style=flat-square)](https://pypi.python.org/pypi/vedro-playwright/)
+[![Python Version](https://img.shields.io/pypi/pyversions/vedro-playwright.svg?style=flat-square)](https://pypi.python.org/pypi/vedro-playwright/)
 
-[Vedro](https://github.com/nikitanovosibirsk/vedro) + [pyppeteer](https://github.com/pyppeteer/pyppeteer)
+[Vedro](https://github.com/nikitanovosibirsk/vedro) + [playwright](https://playwright.dev/python/)
 
 ## Installation
 
 ### 1. Install package
 
 ```shell
-$ pip3 install vedro-pyppeteer
+$ pip3 install vedro-playwright
 ```
 
 ### 2. Enable plugin
@@ -20,13 +20,13 @@ $ pip3 install vedro-pyppeteer
 ```python
 # ./vedro.cfg.py
 import vedro
-import vedro_pyppeteer as p
+import vedro_playwright as playwright
 
 class Config(vedro.Config):
 
     class Plugins(vedro.Config.Plugins):
 
-        class Pyppeteer(p.Pyppeteer):
+        class Playwright(playwright.Playwright):
             enabled = True
 ```
 
@@ -35,7 +35,7 @@ class Config(vedro.Config):
 ```python
 # ./scenarios/reset_password.py
 import vedro
-from vedro_pyppeteer import opened_browser_page
+from vedro_playwright import opened_browser_page
 
 class Scenario(vedro.Scenario):
     subject = "reset password"
@@ -57,12 +57,12 @@ class Scenario(vedro.Scenario):
 ```
 
 ```shell
-$ vedro run --pyppeteer-screenshots=on_fail
+$ vedro run --playwright-screenshots=on_fail
 ```
 
 ## Documentation
 
-`--pyppeteer-screenshots=<mode>`
+`--playwright-screenshots=<mode>`
 
 | Mode        | Description                                        |
 | ----------- | -------------------------------------------------- |
@@ -70,4 +70,4 @@ $ vedro run --pyppeteer-screenshots=on_fail
 | only_failed | Save screenshots only for failed steps             |
 | on_fail     | Save screenshots for all steps when scenario fails |
 
-`--pyppeteer-screenshots-dir` — Set directory for screenshots (default: ./screenshots)
+`--playwright-screenshots-dir` — Set directory for screenshots (default: ./screenshots)

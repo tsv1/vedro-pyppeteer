@@ -2,7 +2,7 @@ from unittest.mock import Mock
 
 from baby_steps import given, then, when
 
-from vedro_pyppeteer._browser_context import BrowserContext
+from vedro_playwright._browser_context import BrowserContext
 
 
 def test_browser_context_get():

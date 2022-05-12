@@ -13,6 +13,7 @@ class ScreenshotPath:
         self.scenario_subject: Union[str, None] = None
         self.step_name: Union[str, None] = None
         self.tab_index: Union[int, None] = None
+        self.context_index: Union[int, None] = None
 
     def resolve(self) -> Path:
         dir_path = self.dir
@@ -36,6 +37,9 @@ class ScreenshotPath:
 
         if self.tab_index is not None:
             file_path = f"tab{self.tab_index}__{file_path}"
+
+        if self.context_index is not None:
+            file_path = f"ctx{self.context_index}__{file_path}"
 
         return dir_path / (file_path + ".png")
 

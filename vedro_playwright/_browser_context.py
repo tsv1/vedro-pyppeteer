@@ -1,6 +1,6 @@
 from typing import Union
 
-from pyppeteer.browser import Browser
+from playwright.async_api import Browser
 
 __all__ = ("BrowserContext",)
 

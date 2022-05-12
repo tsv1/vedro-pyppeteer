@@ -1,11 +1,11 @@
 from baby_steps import then, when
 
-from vedro_pyppeteer import Pyppeteer, PyppeteerPlugin
+from vedro_playwright import Playwright, PlaywrightPlugin
 
 
 def test_plugin():
     with when:
-        plugin = PyppeteerPlugin(Pyppeteer)
+        plugin = PlaywrightPlugin(Playwright)
 
     with then:
-        assert isinstance(plugin, PyppeteerPlugin)
+        assert isinstance(plugin, PlaywrightPlugin)

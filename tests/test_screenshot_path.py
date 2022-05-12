@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from baby_steps import given, then, when
 
-from vedro_pyppeteer._screenshot_path import ScreenshotPath
+from vedro_playwright._screenshot_path import ScreenshotPath
 
 
 @pytest.fixture()

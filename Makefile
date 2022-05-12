@@ -1,4 +1,4 @@
-PROJECT_NAME=vedro_pyppeteer
+PROJECT_NAME=vedro_playwright
 
 .PHONY: install
 install:

@@ -2,12 +2,10 @@ from enum import Enum
 from pathlib import Path
 from shutil import rmtree
 from time import time
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
 
 import vedro
-from pyppeteer.browser import Browser
-from pyppeteer.launcher import Launcher
-from pyppeteer.page import Page
+from playwright.async_api import Browser, Page, async_playwright
 from vedro.core import Dispatcher, Plugin, PluginConfig
 from vedro.events import (
     ArgParsedEvent,
@@ -22,7 +20,7 @@ from vedro.events import (
 from ._browser_context import BrowserContext
 from ._screenshot_path import ScreenshotPath
 
-__all__ = ("Pyppeteer", "PyppeteerPlugin", "opened_browser", "opened_browser_page",)
+__all__ = ("Playwright", "PlaywrightPlugin", "opened_browser", "opened_browser_page",)
 
 _browser_ctx = BrowserContext()
 
@@ -31,13 +29,15 @@ _browser_ctx = BrowserContext()
 async def opened_browser(options: Optional[Dict[str, Any]] = None) -> Browser:
     if options is None:
         options = {"headless": True}
-    options = {**options, "autoClose": False}
 
-    launcher = Launcher(options)
-    browser = await launcher.launch()
-    _browser_ctx.set(browser)
+    cm = async_playwright()
+    playwright = await cm.__aenter__()
+    vedro.defer(cm.__aexit__)
 
+    browser: Browser = await playwright.chromium.launch(**options)
     vedro.defer(browser.close)
+
+    _browser_ctx.set(browser)
     vedro.defer(_browser_ctx.clear)
 
     return browser
@@ -48,9 +48,10 @@ async def opened_browser_page(browser: Optional[Browser] = None) -> Page:
     if browser is None:
         browser = await opened_browser()
 
-    pages = await browser.pages()
-    page = pages[0]
-    return page
+    context = await browser.new_context()
+    # context available via page.context
+    page = await context.new_page()
+    return cast(Page, page)
 
 
 class Mode(Enum):
@@ -63,8 +64,8 @@ class Mode(Enum):
         return self.value
 
 
-class PyppeteerPlugin(Plugin):
-    def __init__(self, config: Type["Pyppeteer"], *,
+class PlaywrightPlugin(Plugin):
+    def __init__(self, config: Type["Playwright"], *,
                  browser_ctx: BrowserContext = _browser_ctx) -> None:
         super().__init__(config)
         self._browser_ctx = browser_ctx
@@ -83,19 +84,19 @@ class PyppeteerPlugin(Plugin):
                   .listen(StepFailedEvent, self.on_step_end)
 
     def on_arg_parse(self, event: ArgParseEvent) -> None:
-        group = event.arg_parser.add_argument_group("Pyppeteer")
+        group = event.arg_parser.add_argument_group("Playwright")
 
-        group.add_argument("--pyppeteer-screenshots",
+        group.add_argument("--playwright-screenshots",
                            type=Mode, choices=list(Mode), help="Enable screenshots")
 
         default_dir = "./screenshots"
         help_message = f"Set directory for screenshots (default: '{default_dir}')"
-        group.add_argument("--pyppeteer-screenshots-dir",
+        group.add_argument("--playwright-screenshots-dir",
                            default=default_dir, help=help_message)
 
     def on_arg_parsed(self, event: ArgParsedEvent) -> None:
-        self._mode = event.args.pyppeteer_screenshots
-        self._dir = Path(event.args.pyppeteer_screenshots_dir).resolve()
+        self._mode = event.args.playwright_screenshots
+        self._dir = Path(event.args.playwright_screenshots_dir).resolve()
         self._reruns = event.args.reruns
 
     def on_startup(self, event: StartupEvent) -> None:
@@ -125,21 +126,23 @@ class PyppeteerPlugin(Plugin):
         if browser is None:
             return
 
-        pages = await browser.pages()
-        for index, page in enumerate(pages):
-            self._path.timestamp = int(time() * 1000)
-            self._path.step_name = event.step_result.step_name
-            if len(pages) > 1:
-                self._path.tab_index = index
+        for context_idx, context in enumerate(browser.contexts):
+            for page_idx, page in enumerate(context.pages):
+                self._path.timestamp = int(time() * 1000)
+                self._path.step_name = event.step_result.step_name
+                if len(browser.contexts) > 1:
+                    self._path.context_index = context_idx
+                if len(context.pages) > 1:
+                    self._path.tab_index = page_idx
 
-            path = self._path.resolve()
-            screenshot = await page.screenshot()
-            if self._mode == Mode.EVERY_STEP:
-                self._save_screenshot(screenshot, path)
-            elif self._mode == Mode.ON_FAIL:
-                self._buffer.append((screenshot, path))
-            elif (self._mode == Mode.ONLY_FAILED) and event.step_result.is_failed():
-                self._save_screenshot(screenshot, path)
+                path = self._path.resolve()
+                screenshot = await page.screenshot()
+                if self._mode == Mode.EVERY_STEP:
+                    self._save_screenshot(screenshot, path)
+                elif self._mode == Mode.ON_FAIL:
+                    self._buffer.append((screenshot, path))
+                elif (self._mode == Mode.ONLY_FAILED) and event.step_result.is_failed():
+                    self._save_screenshot(screenshot, path)
 
     async def on_scenario_failed(self, event: ScenarioFailedEvent) -> None:
         while len(self._buffer) > 0:
@@ -147,5 +150,5 @@ class PyppeteerPlugin(Plugin):
             self._save_screenshot(screenshot, path)
 
 
-class Pyppeteer(PluginConfig):
-    plugin = PyppeteerPlugin
+class Playwright(PluginConfig):
+    plugin = PlaywrightPlugin
