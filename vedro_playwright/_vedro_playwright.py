@@ -1,11 +1,10 @@
-from enum import Enum
 from pathlib import Path
 from shutil import rmtree
 from time import time
-from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import vedro
-from playwright.async_api import Browser, Page, async_playwright
+from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 from vedro.core import Dispatcher, Plugin, PluginConfig
 from vedro.events import (
     ArgParsedEvent,
@@ -17,8 +16,10 @@ from vedro.events import (
     StepPassedEvent,
 )
 
+from ._browser_engine import BrowserEngine
 from ._browser_registry import BrowserRegistry
 from ._screenshot_path import ScreenshotPath
+from ._screenshots_mode import ScreenshotsMode
 
 __all__ = ("Playwright", "PlaywrightPlugin", "opened_browser", "opened_browser_page",)
 
@@ -26,7 +27,8 @@ _browser_registry = BrowserRegistry()
 
 
 @vedro.context
-async def opened_browser(options: Optional[Dict[str, Any]] = None) -> Browser:
+async def opened_browser(engine: BrowserEngine = BrowserEngine.CHROMIUM,
+                         options: Optional[Dict[str, Any]] = None) -> Browser:
     if options is None:
         options = {"headless": True}
 
@@ -34,7 +36,8 @@ async def opened_browser(options: Optional[Dict[str, Any]] = None) -> Browser:
     playwright = await cm.__aenter__()
     vedro.defer(cm.__aexit__)
 
-    browser: Browser = await playwright.chromium.launch(**options)
+    browser_type = getattr(playwright, engine.value)
+    browser: Browser = await browser_type.launch(**options)
     vedro.defer(browser.close)
 
     _browser_registry.set(browser)
@@ -48,20 +51,10 @@ async def opened_browser_page(browser: Optional[Browser] = None) -> Page:
     if browser is None:
         browser = await opened_browser()
 
-    context = await browser.new_context()
+    context: BrowserContext = await browser.new_context()
     # context available via page.context
     page = await context.new_page()
-    return cast(Page, page)
-
-
-class Mode(Enum):
-    EVERY_STEP = "every_step"
-    ONLY_FAILED = "only_failed"
-    ON_FAIL = "on_fail"
-    DISABLED = "disabled"
-
-    def __str__(self) -> str:
-        return self.value
+    return page
 
 
 class PlaywrightPlugin(Plugin):
@@ -69,7 +62,7 @@ class PlaywrightPlugin(Plugin):
                  browser_registry: BrowserRegistry = _browser_registry) -> None:
         super().__init__(config)
         self._browser_registry = browser_registry
-        self._mode = Mode.DISABLED
+        self._mode = ScreenshotsMode.DISABLED
         self._dir = Path()
         self._reruns = 0
         self._buffer: List[Tuple[bytes, Path]] = []
@@ -87,7 +80,9 @@ class PlaywrightPlugin(Plugin):
         group = event.arg_parser.add_argument_group("Playwright")
 
         group.add_argument("--playwright-screenshots",
-                           type=Mode, choices=list(Mode), help="Enable screenshots")
+                           type=ScreenshotsMode,
+                           choices=list(ScreenshotsMode),
+                           help="Enable screenshots")
 
         default_dir = "./screenshots"
         help_message = f"Set directory for screenshots (default: '{default_dir}')"
@@ -100,11 +95,11 @@ class PlaywrightPlugin(Plugin):
         self._reruns = event.args.reruns
 
     def on_startup(self, event: StartupEvent) -> None:
-        if self._mode != Mode.DISABLED and self._dir.exists():
+        if self._mode != ScreenshotsMode.DISABLED and self._dir.exists():
             rmtree(self._dir)
 
     def on_scenario_run(self, event: ScenarioRunEvent) -> None:
-        if self._mode == Mode.DISABLED:
+        if self._mode == ScreenshotsMode.DISABLED:
             return
         self._path = ScreenshotPath(self._dir)
         self._path.scenario_path = event.scenario_result.scenario.path
@@ -119,7 +114,7 @@ class PlaywrightPlugin(Plugin):
         path.write_bytes(screenshot)
 
     async def on_step_end(self, event: Union[StepPassedEvent, StepFailedEvent]) -> None:
-        if self._mode == Mode.DISABLED:
+        if self._mode == ScreenshotsMode.DISABLED:
             return
 
         browser = self._browser_registry.get()
@@ -137,11 +132,11 @@ class PlaywrightPlugin(Plugin):
 
                 path = self._path.resolve()
                 screenshot = await page.screenshot()
-                if self._mode == Mode.EVERY_STEP:
+                if self._mode == ScreenshotsMode.EVERY_STEP:
                     self._save_screenshot(screenshot, path)
-                elif self._mode == Mode.ON_FAIL:
+                elif self._mode == ScreenshotsMode.ON_FAIL:
                     self._buffer.append((screenshot, path))
-                elif (self._mode == Mode.ONLY_FAILED) and event.step_result.is_failed():
+                elif (self._mode == ScreenshotsMode.ONLY_FAILED) and event.step_result.is_failed():
                     self._save_screenshot(screenshot, path)
 
     async def on_scenario_failed(self, event: ScenarioFailedEvent) -> None:

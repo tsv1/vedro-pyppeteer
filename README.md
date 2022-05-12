@@ -45,7 +45,42 @@ class Scenario(vedro.Scenario):
         await self.page.goto("http://localhost/reset")
 
     async def given_filled_email(self):
-        form_email = await self.page.querySelector("#form-email")
+        form_email = self.page.locator("#form-email")
+        await form_email.type("user@email")
+
+    async def when_user_submits_form(self):
+        await self.page.click("#form-submit")
+
+    async def then_it_should_redirect_to_root_page(self):
+        pathname = await self.page.evaluate("window.location.pathname")
+        assert pathname == "/"
+```
+
+```shell
+$ vedro run --playwright-screenshots=on_fail
+```
+
+### Different Browsers
+
+```python
+import vedro
+from vedro_playwright import opened_firefox_page, opened_chromium_page, opened_webkit_page
+
+class Scenario(vedro.Scenario):
+    subject = "reset password ({opened_page.__name__})"
+
+    @vedro.params(opened_chromium_page)
+    @vedro.params(opened_firefox_page)
+    @vedro.params(opened_webkit_page)
+    def __init__(self, opened_page):
+        self.opened_page = opened_page
+
+    async def given_opened_app(self):
+        self.page = await self.opened_page()
+        await self.page.goto("http://localhost/reset")
+
+    async def given_filled_email(self):
+        form_email = self.page.locator("#form-email")
         await form_email.type("user@email")
 
     async def when_user_submits_form(self):
