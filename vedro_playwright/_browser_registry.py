@@ -2,10 +2,10 @@ from typing import Union
 
 from playwright.async_api import Browser
 
-__all__ = ("BrowserContext",)
+__all__ = ("BrowserRegistry",)
 
 
-class BrowserContext:
+class BrowserRegistry:
     def __init__(self) -> None:
         self._browser: Union[Browser, None] = None
 

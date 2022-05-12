@@ -17,12 +17,12 @@ from vedro.events import (
     StepPassedEvent,
 )
 
-from ._browser_context import BrowserContext
+from ._browser_registry import BrowserRegistry
 from ._screenshot_path import ScreenshotPath
 
 __all__ = ("Playwright", "PlaywrightPlugin", "opened_browser", "opened_browser_page",)
 
-_browser_ctx = BrowserContext()
+_browser_registry = BrowserRegistry()
 
 
 @vedro.context
@@ -37,8 +37,8 @@ async def opened_browser(options: Optional[Dict[str, Any]] = None) -> Browser:
     browser: Browser = await playwright.chromium.launch(**options)
     vedro.defer(browser.close)
 
-    _browser_ctx.set(browser)
-    vedro.defer(_browser_ctx.clear)
+    _browser_registry.set(browser)
+    vedro.defer(_browser_registry.clear)
 
     return browser
 
@@ -66,9 +66,9 @@ class Mode(Enum):
 
 class PlaywrightPlugin(Plugin):
     def __init__(self, config: Type["Playwright"], *,
-                 browser_ctx: BrowserContext = _browser_ctx) -> None:
+                 browser_registry: BrowserRegistry = _browser_registry) -> None:
         super().__init__(config)
-        self._browser_ctx = browser_ctx
+        self._browser_registry = browser_registry
         self._mode = Mode.DISABLED
         self._dir = Path()
         self._reruns = 0
@@ -122,7 +122,7 @@ class PlaywrightPlugin(Plugin):
         if self._mode == Mode.DISABLED:
             return
 
-        browser = self._browser_ctx.get()
+        browser = self._browser_registry.get()
         if browser is None:
             return
 
