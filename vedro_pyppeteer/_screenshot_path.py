@@ -7,7 +7,6 @@ __all__ = ("ScreenshotPath",)
 class ScreenshotPath:
     def __init__(self, dir_: Path) -> None:
         self.dir = dir_
-        self.rerun: Union[int, None] = None
         self.timestamp: Union[int, None] = None
         self.scenario_path: Union[Path, None] = None
         self.scenario_subject: Union[str, None] = None
@@ -24,9 +23,6 @@ class ScreenshotPath:
         file_path = "screenshot"
         if self.scenario_subject is not None:
             file_path = self.scenario_subject
-
-        if self.rerun is not None:
-            file_path = f"[{self.rerun}]{file_path}"
 
         if self.timestamp is not None:
             file_path += f"__{self.timestamp}"
