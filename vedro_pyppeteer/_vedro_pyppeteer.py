@@ -70,7 +70,6 @@ class PyppeteerPlugin(Plugin):
         self._browser_ctx = browser_ctx
         self._mode = Mode.DISABLED
         self._dir = Path()
-        self._reruns = 0
         self._buffer: List[Tuple[bytes, Path]] = []
 
     def subscribe(self, dispatcher: Dispatcher) -> None:
@@ -96,7 +95,6 @@ class PyppeteerPlugin(Plugin):
     def on_arg_parsed(self, event: ArgParsedEvent) -> None:
         self._mode = event.args.pyppeteer_screenshots
         self._dir = Path(event.args.pyppeteer_screenshots_dir).resolve()
-        self._reruns = event.args.reruns
 
     def on_startup(self, event: StartupEvent) -> None:
         if self._mode != Mode.DISABLED and self._dir.exists():
@@ -108,8 +106,6 @@ class PyppeteerPlugin(Plugin):
         self._path = ScreenshotPath(self._dir)
         self._path.scenario_path = event.scenario_result.scenario.path
         self._path.scenario_subject = event.scenario_result.scenario.subject
-        if self._reruns > 0:
-            self._path.rerun = event.scenario_result.rerun
         self._buffer = []
 
     def _save_screenshot(self, screenshot: bytes, path: Path) -> None:
@@ -133,12 +129,14 @@ class PyppeteerPlugin(Plugin):
                 self._path.tab_index = index
 
             path = self._path.resolve()
-            screenshot = await page.screenshot()
             if self._mode == Mode.EVERY_STEP:
+                screenshot = await page.screenshot()
                 self._save_screenshot(screenshot, path)
             elif self._mode == Mode.ON_FAIL:
+                screenshot = await page.screenshot()
                 self._buffer.append((screenshot, path))
             elif (self._mode == Mode.ONLY_FAILED) and event.step_result.is_failed():
+                screenshot = await page.screenshot()
                 self._save_screenshot(screenshot, path)
 
     async def on_scenario_failed(self, event: ScenarioFailedEvent) -> None:

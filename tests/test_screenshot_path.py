@@ -46,18 +46,6 @@ def test_screenshot_path_with_scenario_subject(*, dir_path: Path):
         assert resolved == dir_path / "<subject>.png"
 
 
-def test_screenshot_path_with_rerun(*, dir_path: Path):
-    with given:
-        path = ScreenshotPath(dir_path)
-        path.rerun = 1
-
-    with when:
-        resolved = path.resolve()
-
-    with then:
-        assert resolved == dir_path / f"[{path.rerun}]screenshot.png"
-
-
 def test_screenshot_path_with_timestamp(*, dir_path: Path):
     with given:
         path = ScreenshotPath(dir_path)
