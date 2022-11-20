@@ -1,5 +1,9 @@
 # Vedro Pyppeteer Plugin
 
+⚠️ Deprecated. Please consider [vedro-playwright](https://pypi.org/project/vedro-playwright/) as an alternative.
+
+—
+
 [![Codecov](https://img.shields.io/codecov/c/github/nikitanovosibirsk/vedro-pyppeteer/master.svg?style=flat-square)](https://codecov.io/gh/nikitanovosibirsk/vedro-pyppeteer)
 [![PyPI](https://img.shields.io/pypi/v/vedro-pyppeteer.svg?style=flat-square)](https://pypi.python.org/pypi/vedro-pyppeteer/)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/vedro-pyppeteer?style=flat-square)](https://pypi.python.org/pypi/vedro-pyppeteer/)
